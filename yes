@@ -1,0 +1,57 @@
+import cv2
+
+def gstreamer_pipeline(
+    sensor_id=0,
+    capture_width=1920,
+    capture_height=1080,
+    framerate=60,  # Match the framerate you're using in the terminal command
+    flip_method=0,
+):
+    return (
+        "nvarguscamerasrc sensor-id=%d ! "
+        "video/x-raw(memory:NVMM), width=(int)%d, height=(int)%d, framerate=(fraction)%d/1 ! "
+        "nvvidconv flip-method=%d ! "
+        "nvegltransform ! nveglglessink -e"
+        % (
+            sensor_id,
+            capture_width,
+            capture_height,
+            framerate,
+            flip_method,
+        )
+    )
+
+
+def show_camera():
+    window_title = "CSI Camera"
+
+    # Print the GStreamer pipeline to verify it's correct
+    print(gstreamer_pipeline(sensor_id=0, flip_method=0))
+    
+    # Initialize the video capture using the GStreamer pipeline
+    video_capture = cv2.VideoCapture(gstreamer_pipeline(sensor_id=0, flip_method=0), cv2.CAP_GSTREAMER)
+    
+    if video_capture.isOpened():
+        try:
+            window_handle = cv2.namedWindow(window_title, cv2.WINDOW_AUTOSIZE)
+            while True:
+                ret_val, frame = video_capture.read()
+                if ret_val:
+                    cv2.imshow(window_title, frame)
+                else:
+                    print("Error: Unable to retrieve frame from camera")
+                    break
+
+                keyCode = cv2.waitKey(10) & 0xFF
+                # Stop the program on the ESC key or 'q'
+                if keyCode == 27 or keyCode == ord('q'):
+                    break
+        finally:
+            video_capture.release()
+            cv2.destroyAllWindows()
+    else:
+        print("Error: Unable to open camera")
+
+
+if __name__ == "__main__":
+    show_camera()
